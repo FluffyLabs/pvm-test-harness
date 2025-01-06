@@ -1,0 +1,3 @@
+[submodule "polkavm"]
+	path = polkavm
+	url = git@github.com:paritytech/polkavm.git
