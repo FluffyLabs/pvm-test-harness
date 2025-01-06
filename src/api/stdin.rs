@@ -26,6 +26,8 @@ impl<Read, Write> JsonStdin<Read, Write> {
 
 impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Write> {
     fn run(&mut self) -> super::Result<Status> {
+        log::debug!("[stdin] Executing: {:?}", self.json);
+
         let read = BufReader::new(&mut self.stdout);
         let json = serde_json::to_vec(&self.json).unwrap();
 
@@ -63,6 +65,7 @@ impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Writ
             }
         };
 
+        log::debug!("[stdin] Complete with status {status}: {:?}", self.output);
         Ok(status)
     }
 

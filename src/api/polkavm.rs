@@ -54,6 +54,7 @@ impl PolkaVm {
 
 impl PvmApi for PolkaVm {
     fn run(&mut self) -> super::Result<Status> {
+        log::debug!("[polkavm] executing: {:?}", self);
         use polkavm::InterruptKind::*;
 
         let mut instance = self.init_instance()?;
@@ -81,6 +82,8 @@ impl PvmApi for PolkaVm {
         for (reg, out) in polkavm::Reg::ALL.iter().zip(&mut self.output.registers) {
             *out = instance.reg(*reg);
         }
+
+        log::debug!("[polkavm] Complete with status {status}: {:?}", self.output);
         Ok(status)
     }
 
