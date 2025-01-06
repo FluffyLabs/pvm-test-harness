@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+polkavm = { path = "./polkavm/crates/polkavm" }
+
 anyhow = "1.0.95"
 clap = { version = "4.5.23", features = ["derive"] }
 env_logger = "0.11.6"
 log = "0.4.22"
-
-polkavm = { path = "./polkavm/crates/polkavm" }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.134"
 

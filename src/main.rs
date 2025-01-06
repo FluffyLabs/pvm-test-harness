@@ -1,20 +1,77 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Stdio};
+use api::PvmApi;
 use clap::Parser;
+use json::TestcaseJson;
 
 mod api;
+mod json;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
     let args = Args::parse();
 
     match args {
-        Args::Json { pvm } => {
-            todo!();
+        Args::Json { file, pvm } => {
+            let json = std::fs::read(&file)?;
+            let json: TestcaseJson = serde_json::from_slice(&json)?;
+
+            // intialize pvms
+            let mut pvms = api::collection::PvmApiCollection::new(init_pvms(&pvm)?);
+
+            let mut registers = [0u64; api::NUMBER_OF_REGISTERS];
+            for (out, reg) in &mut registers.iter_mut().zip(&json.initial_regs) {
+                *out = *reg;
+            }
+            pvms.set_gas(json.initial_gas);
+            pvms.set_registers(&registers);
+            pvms.set_next_program_counter(json.initial_pc);
+            // TODO [ToDr] setup memory?
+            pvms.set_program(&json.program, api::ProgramContainer::Generic)?;
+
+            let status = pvms.run()?;
+            let regs = pvms.registers();
+            let gas = pvms.gas();
+            let pc = pvms.program_counter();
+
+            assert_eq!(format!("{status}"), json.expected_status, "Mismatching status");
+            assert_eq!(gas, json.expected_gas, "Mismatching gas");
+            assert_eq!(pc, Some(json.expected_pc), "Mismatching pc");
+            assert_eq!(&regs, &*json.expected_regs, "Mismatching regs");
+            // TODO [ToDr] Compare memory
+            
+            println!("{} executed", json.name);
+            Ok(())
         },
-        Args::Fuzz { pvm } => {
+        Args::Fuzz { .. } => {
             todo!();
         },
     }
+}
+
+fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
+    if pvm.is_empty() {
+        anyhow::bail!("No PVMs specified. Make sure to start at least one.");
+    }
+
+    pvm.iter().map(|pvm| {
+        match pvm {
+            Pvm::PolkaVM => Ok(Box::new(api::polkavm::PolkaVm::default()) as Box<dyn PvmApi>),
+            Pvm::Stdin { binary } => {
+                // spawn process
+                let process = std::process::Command::new(&binary)
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::inherit())
+                    .spawn()?;
+                let stdin = process.stdin.unwrap();
+                let stdout = process.stdout.unwrap();
+                Ok(Box::new(api::stdin::JsonStdin::new(stdout, stdin)) as _)
+            },
+            Pvm::JsonRpc { .. } => {
+                anyhow::bail!("RPC pvm is not supported yet.")
+            }
+        }
+    }).collect()
 }
 
 #[derive(Parser, Debug)]
@@ -23,6 +80,7 @@ fn main() {
 enum Args {
     /// Execute a JSON test case.
     Json {
+        file: PathBuf,
         #[clap(help=PVM_HELP)]
         pvm: Vec<Pvm>,
     },
@@ -44,6 +102,7 @@ enum Pvm {
         binary: PathBuf,
     },
 
+    #[allow(dead_code)]
     /// jsonrpc-based interface
     JsonRpc {
         endpoint: String,

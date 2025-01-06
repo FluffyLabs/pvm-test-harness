@@ -1,12 +1,4 @@
-use super::{common::{InitialState, OutputState}, ProgramContainer, PvmApi, Status};
-
-
-#[derive(Copy, Clone, Debug)]
-pub enum Error {
-    PageFault,
-    InvalidProgram,
-    UnsupportedContainer,
-}
+use super::{common::{InitialState, OutputState}, Error, ProgramContainer, PvmApi, Status};
 
 #[derive(Debug, Default)]
 pub struct PolkaVm {
@@ -15,7 +7,7 @@ pub struct PolkaVm {
 }
 
 impl PolkaVm {
-    fn init_instance(&self) -> Result<polkavm::RawInstance, Error> {
+    fn init_instance(&self) -> super::Result<polkavm::RawInstance> {
         let parts = match self.initial.container {
             Some(ProgramContainer::Generic) => {
                 let mut parts = polkavm::ProgramParts::default();
@@ -45,7 +37,7 @@ impl PolkaVm {
         let mut module_config = polkavm::ModuleConfig::default();
         module_config.set_strict(true);
         module_config.set_gas_metering(Some(polkavm::GasMeteringKind::Sync));
-        module_config.set_step_tracing(true);
+        //module_config.set_step_tracing(true);
 
         let module = polkavm::Module::from_blob(&engine, &module_config, blob).unwrap();
         let mut instance = module.instantiate().unwrap();
@@ -61,9 +53,7 @@ impl PolkaVm {
 }
 
 impl PvmApi for PolkaVm {
-    type Error = Error;
-
-    fn run(&mut self) -> Result<Status, Self::Error> {
+    fn run(&mut self) -> super::Result<Status> {
         use polkavm::InterruptKind::*;
 
         let mut instance = self.init_instance()?;
@@ -118,7 +108,10 @@ impl PvmApi for PolkaVm {
         self.initial.pc = pc;
     }
 
-    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> Result<(), Self::Error> {
+    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
+        if let ProgramContainer::SPI = container {
+            return Err(Error::UnsupportedContainer);
+        }
         // TODO [ToDr] shall we parse the program here already?
         self.initial.program = code.to_vec();
         self.initial.container = Some(container);
@@ -129,11 +122,11 @@ impl PvmApi for PolkaVm {
         todo!()
     }
 
-    fn read_memory(&self, _address: u32, _out: &mut [u8]) -> Result<(), Self::Error> {
+    fn read_memory(&self, _address: u32, _out: &mut [u8]) -> super::Result<()> {
         todo!()
     }
 
-    fn write_memory(&mut self, _address: u32, _data: &[u8]) -> Result<(), Self::Error> {
+    fn write_memory(&mut self, _address: u32, _data: &[u8]) -> super::Result<()> {
         todo!()
     }
 }
