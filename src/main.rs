@@ -63,7 +63,7 @@ fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
                 Pvm::PolkaVM => Ok(Box::new(api::polkavm::PolkaVm::default()) as Box<dyn PvmApi>),
                 Pvm::Stdin { binary } => {
                     // spawn process
-                    let process = std::process::Command::new(&binary)
+                    let process = std::process::Command::new(binary)
                         .stdin(Stdio::piped())
                         .stdout(Stdio::piped())
                         .stderr(Stdio::inherit())

@@ -36,7 +36,7 @@ impl std::fmt::Display for Status {
 pub enum ProgramContainer {
     Generic,
     #[allow(dead_code)]
-    SPI,
+    Spi,
     #[allow(dead_code)]
     PolkaVM,
 }
