@@ -1,4 +1,7 @@
-use super::{common::{InitialState, OutputState}, Error, ProgramContainer, PvmApi, Status};
+use super::{
+    common::{InitialState, OutputState},
+    Error, ProgramContainer, PvmApi, Status,
+};
 
 #[derive(Debug, Default)]
 pub struct PolkaVm {
@@ -14,14 +17,14 @@ impl PolkaVm {
                 parts.code_and_jump_table = self.initial.program.clone().into();
                 // TODO [ToDr] setup memory
                 Ok(parts)
-            },
-            Some(ProgramContainer::PolkaVM) => {
-                polkavm::ProgramParts::from_bytes(self.initial.program.clone().into())
-                    .map_err(|e| {
-                        log::error!("{:?}", e);
-                        Error::InvalidProgram
-                    })
-            },
+            }
+            Some(ProgramContainer::PolkaVM) => polkavm::ProgramParts::from_bytes(
+                self.initial.program.clone().into(),
+            )
+            .map_err(|e| {
+                log::error!("{:?}", e);
+                Error::InvalidProgram
+            }),
             _ => Err(Error::UnsupportedContainer),
         }?;
 
@@ -62,18 +65,14 @@ impl PvmApi for PolkaVm {
         let status = match status {
             Ok(Finished) => Status::Halt,
             Ok(Trap) => Status::Trap,
-            Ok(Ecalli(_call)) => { 
-                Status::Host
-            },
-            Ok(Segfault(_page)) => {
-                Status::Fault
-            },
+            Ok(Ecalli(_call)) => Status::Host,
+            Ok(Segfault(_page)) => Status::Fault,
             Ok(NotEnoughGas) => Status::OutOfGas,
             Ok(Step) => Status::Ok,
             Err(e) => {
                 log::error!("Error: {:?}", e);
                 Status::Trap
-            },
+            }
         };
 
         // copy results to `output` so they can be queried
@@ -111,7 +110,11 @@ impl PvmApi for PolkaVm {
         self.initial.pc = pc;
     }
 
-    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
+    fn set_program(
+        &mut self,
+        code: &[u8],
+        container: super::ProgramContainer,
+    ) -> super::Result<()> {
         if let ProgramContainer::SPI = container {
             return Err(Error::UnsupportedContainer);
         }

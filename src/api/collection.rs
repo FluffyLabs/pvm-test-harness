@@ -1,6 +1,5 @@
 use super::PvmApi;
 
-
 pub struct PvmApiCollection {
     collection: Vec<Box<dyn PvmApi>>,
 }
@@ -12,7 +11,8 @@ impl PvmApiCollection {
         Self { collection }
     }
 
-    fn for_all_mut<F, G, R>(&mut self, mut run: F, merge: G) -> R where 
+    fn for_all_mut<F, G, R>(&mut self, mut run: F, merge: G) -> R
+    where
         F: FnMut(&mut dyn PvmApi) -> R,
         G: Fn(R, R) -> R,
     {
@@ -23,7 +23,8 @@ impl PvmApiCollection {
         result
     }
 
-    fn for_all<F, G, R>(&self, run: F, merge: G) -> R where 
+    fn for_all<F, G, R>(&self, run: F, merge: G) -> R
+    where
         F: Fn(&dyn PvmApi) -> R,
         G: Fn(R, R) -> R,
     {
@@ -35,20 +36,22 @@ impl PvmApiCollection {
     }
 }
 
-
 fn propagate<R: core::fmt::Debug + Eq>(a: R, b: R) -> R {
     if a != b {
         log::error!("PVM status mismatch: {a:?} vs {b:?}");
     }
     a
 }
-fn propagate_res<R: core::fmt::Debug + Eq>(a: super::Result<R>, b: super::Result<R>) -> super::Result<R> {
+fn propagate_res<R: core::fmt::Debug + Eq>(
+    a: super::Result<R>,
+    b: super::Result<R>,
+) -> super::Result<R> {
     match (a, b) {
         (Err(e), o) | (o, Err(e)) => {
             log::error!("Ignoring result due to error in one of the PVMs: {:?}", o);
             Err(e)
-        },
-        (Ok(a), Ok(b)) => Ok(propagate(a, b))
+        }
+        (Ok(a), Ok(b)) => Ok(propagate(a, b)),
     }
 }
 
@@ -81,7 +84,11 @@ impl PvmApi for PvmApiCollection {
         self.for_all_mut(|p| p.set_next_program_counter(pc), propagate)
     }
 
-    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
+    fn set_program(
+        &mut self,
+        code: &[u8],
+        container: super::ProgramContainer,
+    ) -> super::Result<()> {
         self.for_all_mut(|p| p.set_program(code, container), propagate_res)
     }
 

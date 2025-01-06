@@ -1,7 +1,7 @@
-use std::{path::PathBuf, process::Stdio};
 use api::PvmApi;
 use clap::Parser;
 use json::TestcaseJson;
+use std::{path::PathBuf, process::Stdio};
 
 mod api;
 mod json;
@@ -33,18 +33,22 @@ fn main() -> anyhow::Result<()> {
             let gas = pvms.gas();
             let pc = pvms.program_counter();
 
-            assert_eq!(format!("{status}"), json.expected_status, "Mismatching status");
+            assert_eq!(
+                format!("{status}"),
+                json.expected_status,
+                "Mismatching status"
+            );
             assert_eq!(gas, json.expected_gas, "Mismatching gas");
             assert_eq!(pc, Some(json.expected_pc), "Mismatching pc");
             assert_eq!(&regs, &*json.expected_regs, "Mismatching regs");
             // TODO [ToDr] Compare memory
-            
+
             println!("{} executed", json.name);
             Ok(())
-        },
+        }
         Args::Fuzz { .. } => {
             todo!();
-        },
+        }
     }
 }
 
@@ -53,25 +57,27 @@ fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
         anyhow::bail!("No PVMs specified. Make sure to start at least one.");
     }
 
-    pvm.iter().map(|pvm| {
-        match pvm {
-            Pvm::PolkaVM => Ok(Box::new(api::polkavm::PolkaVm::default()) as Box<dyn PvmApi>),
-            Pvm::Stdin { binary } => {
-                // spawn process
-                let process = std::process::Command::new(&binary)
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::inherit())
-                    .spawn()?;
-                let stdin = process.stdin.unwrap();
-                let stdout = process.stdout.unwrap();
-                Ok(Box::new(api::stdin::JsonStdin::new(stdout, stdin)) as _)
-            },
-            Pvm::JsonRpc { .. } => {
-                anyhow::bail!("RPC pvm is not supported yet.")
+    pvm.iter()
+        .map(|pvm| {
+            match pvm {
+                Pvm::PolkaVM => Ok(Box::new(api::polkavm::PolkaVm::default()) as Box<dyn PvmApi>),
+                Pvm::Stdin { binary } => {
+                    // spawn process
+                    let process = std::process::Command::new(&binary)
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::inherit())
+                        .spawn()?;
+                    let stdin = process.stdin.unwrap();
+                    let stdout = process.stdout.unwrap();
+                    Ok(Box::new(api::stdin::JsonStdin::new(stdout, stdin)) as _)
+                }
+                Pvm::JsonRpc { .. } => {
+                    anyhow::bail!("RPC pvm is not supported yet.")
+                }
             }
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 #[derive(Parser, Debug)]
@@ -88,25 +94,22 @@ enum Args {
     Fuzz {
         #[clap(help=PVM_HELP)]
         pvm: Vec<Pvm>,
-    }
+    },
 }
 
-const PVM_HELP: &str = "PVMs to run. Can be either 'polkavm', 'stdin=<path>' or jsonrpc=<endpoint>.";
+const PVM_HELP: &str =
+    "PVMs to run. Can be either 'polkavm', 'stdin=<path>' or jsonrpc=<endpoint>.";
 #[derive(Debug, Clone)]
 enum Pvm {
     /// Built-in polkavm native interface.
     PolkaVM,
 
     /// stdin-based interface
-    Stdin {
-        binary: PathBuf,
-    },
+    Stdin { binary: PathBuf },
 
     #[allow(dead_code)]
     /// jsonrpc-based interface
-    JsonRpc {
-        endpoint: String,
-    },
+    JsonRpc { endpoint: String },
 }
 
 impl std::str::FromStr for Pvm {
@@ -119,7 +122,9 @@ impl std::str::FromStr for Pvm {
             let path = std::path::PathBuf::from_str(s.trim_start_matches("stdin="))?;
             Ok(Pvm::Stdin { binary: path })
         } else if s.starts_with("jsonrpc=") {
-            Ok(Pvm::JsonRpc { endpoint: s.trim_start_matches("rpc=").to_string() })
+            Ok(Pvm::JsonRpc {
+                endpoint: s.trim_start_matches("rpc=").to_string(),
+            })
         } else {
             anyhow::bail!("Invalid PVM argument: {}", s)
         }

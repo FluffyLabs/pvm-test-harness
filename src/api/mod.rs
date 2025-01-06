@@ -1,6 +1,5 @@
-
-mod common;
 pub mod collection;
+mod common;
 pub mod polkavm;
 pub mod stdin;
 
@@ -18,14 +17,18 @@ pub enum Status {
 
 impl std::fmt::Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Status::Ok => "ok",
-            Status::Halt => "halt",
-            Status::Trap => "trap",
-            Status::Fault => "fault",
-            Status::Host => "host",
-            Status::OutOfGas => "out-of-gas",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Status::Ok => "ok",
+                Status::Halt => "halt",
+                Status::Trap => "trap",
+                Status::Fault => "fault",
+                Status::Host => "host",
+                Status::OutOfGas => "out-of-gas",
+            }
+        )
     }
 }
 
@@ -73,7 +76,6 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 /// Low-level PVM interface.
 pub trait PvmApi {

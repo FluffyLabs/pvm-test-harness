@@ -1,5 +1,4 @@
-#[derive(Debug)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Page {
     pub address: u32,
@@ -7,16 +6,14 @@ pub struct Page {
     pub is_writable: bool,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct MemoryChunk {
     pub address: u32,
     pub contents: Vec<u8>,
 }
 
-#[derive(Debug, Default)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct TestcaseJson {
     pub name: String,

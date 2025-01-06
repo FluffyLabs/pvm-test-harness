@@ -4,7 +4,6 @@ use crate::json::TestcaseJson;
 
 use super::{common::OutputState, ProgramContainer, PvmApi, Status};
 
-
 #[derive(Debug)]
 pub struct JsonStdin<Read, Write> {
     json: TestcaseJson,
@@ -52,7 +51,7 @@ impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Writ
         for (out, reg) in self.output.registers.iter_mut().zip(&output.expected_regs) {
             *out = *reg;
         }
-        
+
         let status = match &*output.expected_status {
             "trap" => Status::Trap,
             "out-of-gas" => Status::OutOfGas,
@@ -93,7 +92,11 @@ impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Writ
         self.json.initial_pc = pc;
     }
 
-    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
+    fn set_program(
+        &mut self,
+        code: &[u8],
+        container: super::ProgramContainer,
+    ) -> super::Result<()> {
         if let ProgramContainer::Generic = container {
             self.json.program = code.to_vec();
             Ok(())
