@@ -20,8 +20,8 @@ fn main() -> anyhow::Result<()> {
             let mut pvms = api::collection::PvmApiCollection::new(init_pvms(&pvm)?);
 
             for file in files {
-                let json = std::fs::read(&file)
-                    .with_context(|| format!("Failed to read JSON file."))?;
+                let json =
+                    std::fs::read(&file).with_context(|| format!("Failed to read JSON file."))?;
                 let json: TestcaseJson = serde_json::from_slice(&json)
                     .with_context(|| format!("Failed to parse JSON file."))?;
 
@@ -97,7 +97,7 @@ fn with_config(config: Option<PathBuf>, mut pvms: Vec<Pvm>) -> anyhow::Result<Ve
                 .with_context(|| format!("Failed to read the config file."))?;
             pvms.append(&mut config.pvm);
             Ok(pvms)
-        },
+        }
         None => Ok(pvms),
     }
 }

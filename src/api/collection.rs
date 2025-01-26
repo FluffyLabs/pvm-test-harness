@@ -74,7 +74,10 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn set_registers(&mut self, registers: &[u64; super::NUMBER_OF_REGISTERS]) {
-        self.for_all_mut(|p| p.set_registers(registers), |a, b| propagate(a, b, "set_registers"))
+        self.for_all_mut(
+            |p| p.set_registers(registers),
+            |a, b| propagate(a, b, "set_registers"),
+        )
     }
 
     fn program_counter(&self) -> Option<u32> {
@@ -82,7 +85,10 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn set_next_program_counter(&mut self, pc: u32) {
-        self.for_all_mut(|p| p.set_next_program_counter(pc), |a, b| propagate(a, b, "set_PC"))
+        self.for_all_mut(
+            |p| p.set_next_program_counter(pc),
+            |a, b| propagate(a, b, "set_PC"),
+        )
     }
 
     fn set_program(
@@ -90,11 +96,17 @@ impl PvmApi for PvmApiCollection {
         code: &[u8],
         container: super::ProgramContainer,
     ) -> super::Result<()> {
-        self.for_all_mut(|p| p.set_program(code, container), |a, b| propagate_res(a, b, "set_program"))
+        self.for_all_mut(
+            |p| p.set_program(code, container),
+            |a, b| propagate_res(a, b, "set_program"),
+        )
     }
 
     fn set_page(&mut self, page: u32, access: super::MemoryAccess) {
-        self.for_all_mut(|p| p.set_page(page, access), |a, b| propagate(a, b, "set_page"))
+        self.for_all_mut(
+            |p| p.set_page(page, access),
+            |a, b| propagate(a, b, "set_page"),
+        )
     }
 
     fn read_memory(&self, _address: u32, _out: &mut [u8]) -> super::Result<()> {
@@ -102,6 +114,9 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn write_memory(&mut self, address: u32, data: &[u8]) -> super::Result<()> {
-        self.for_all_mut(|p| p.write_memory(address, data), |a, b| propagate_res(a, b, "write_memory"))
+        self.for_all_mut(
+            |p| p.write_memory(address, data),
+            |a, b| propagate_res(a, b, "write_memory"),
+        )
     }
 }

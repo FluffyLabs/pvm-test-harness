@@ -46,11 +46,10 @@ impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Writ
         log::debug!("[stdin] Response: {buffer}");
 
         // copy results
-        let output: TestcaseJson = serde_json::from_str(&buffer)
-            .map_err(|e| {
-                log::error!("[stdin] Invalid response received: {e:?}");
-                super::Error::wrap(e)
-            })?;
+        let output: TestcaseJson = serde_json::from_str(&buffer).map_err(|e| {
+            log::error!("[stdin] Invalid response received: {e:?}");
+            super::Error::wrap(e)
+        })?;
         self.output.gas = output.expected_gas;
         self.output.pc = Some(output.expected_pc);
         for (out, reg) in self.output.registers.iter_mut().zip(&output.expected_regs) {
