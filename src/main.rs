@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
                 let json: TestcaseJson = serde_json::from_slice(&json)
                     .with_context(|| format!("Failed to parse JSON file."))?;
 
-                println!("{} running...", json.name);
+                println!("{} running on {} pvms...", json.name, pvm.len());
                 let mut registers = [0u64; api::NUMBER_OF_REGISTERS];
                 for (out, reg) in &mut registers.iter_mut().zip(&json.initial_regs) {
                     *out = *reg;
@@ -110,6 +110,7 @@ struct Args {
     #[arg(short, long)]
     config: Option<PathBuf>,
     #[clap(help=PVM_HELP)]
+    #[arg(long)]
     pvm: Vec<Pvm>,
     /// command to execute
     #[command(subcommand)]
