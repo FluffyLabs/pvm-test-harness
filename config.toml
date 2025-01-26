@@ -1,0 +1,7 @@
+[[pvm]]
+kind = "polkavm"
+
+[[pvm]]
+kind = "stdin"
+name = "ananas"
+binary = "./ananas/bin/stdin.sh"
