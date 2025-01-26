@@ -23,8 +23,8 @@ impl std::fmt::Display for Status {
             match self {
                 Status::Ok => "ok",
                 Status::Halt => "halt",
-                Status::Trap => "trap",
-                Status::Fault => "fault",
+                Status::Trap => "panic",
+                Status::Fault => "page-fault",
                 Status::Host => "host",
                 Status::OutOfGas => "out-of-gas",
             }

@@ -15,6 +15,7 @@ impl PolkaVm {
             Some(ProgramContainer::Generic) => {
                 let mut parts = polkavm::ProgramParts::default();
                 parts.code_and_jump_table = self.initial.program.clone().into();
+                parts.is_64_bit = true;
                 // TODO [ToDr] setup memory
                 Ok(parts)
             }
@@ -115,7 +116,7 @@ impl PvmApi for PolkaVm {
         code: &[u8],
         container: super::ProgramContainer,
     ) -> super::Result<()> {
-        if let ProgramContainer::SPI = container {
+        if let ProgramContainer::Spi = container {
             return Err(Error::UnsupportedContainer);
         }
         // TODO [ToDr] shall we parse the program here already?

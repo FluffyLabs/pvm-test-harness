@@ -1,52 +1,61 @@
+use anyhow::Context;
 use api::PvmApi;
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use config::{read_config_file, Pvm};
 use json::TestcaseJson;
 use std::{path::PathBuf, process::Stdio};
 
 mod api;
+mod config;
 mod json;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let args = Args::parse();
 
-    match args {
-        Args::Json { file, pvm } => {
-            let json = std::fs::read(&file)?;
-            let json: TestcaseJson = serde_json::from_slice(&json)?;
-
+    match args.sub {
+        Command::Json { files } => {
+            let pvm = with_config(args.config, args.pvm)?;
             // intialize pvms
             let mut pvms = api::collection::PvmApiCollection::new(init_pvms(&pvm)?);
 
-            let mut registers = [0u64; api::NUMBER_OF_REGISTERS];
-            for (out, reg) in &mut registers.iter_mut().zip(&json.initial_regs) {
-                *out = *reg;
+            for file in files {
+                let json = std::fs::read(&file)
+                    .with_context(|| format!("Failed to read JSON file."))?;
+                let json: TestcaseJson = serde_json::from_slice(&json)
+                    .with_context(|| format!("Failed to parse JSON file."))?;
+
+                println!("{} running...", json.name);
+                let mut registers = [0u64; api::NUMBER_OF_REGISTERS];
+                for (out, reg) in &mut registers.iter_mut().zip(&json.initial_regs) {
+                    *out = *reg;
+                }
+                pvms.set_gas(json.initial_gas);
+                pvms.set_registers(&registers);
+                pvms.set_next_program_counter(json.initial_pc);
+                // TODO [ToDr] setup memory?
+                pvms.set_program(&json.program, api::ProgramContainer::Generic)?;
+
+                let status = pvms.run()?;
+                let regs = pvms.registers();
+                let gas = pvms.gas();
+                let pc = pvms.program_counter();
+
+                assert_eq!(
+                    format!("{status}"),
+                    json.expected_status,
+                    "Mismatching status"
+                );
+                assert_eq!(gas, json.expected_gas, "Mismatching gas");
+                assert_eq!(pc, Some(json.expected_pc), "Mismatching pc");
+                assert_eq!(&regs, &*json.expected_regs, "Mismatching regs");
+                // TODO [ToDr] Compare memory
+
+                println!("{} ✅", json.name);
             }
-            pvms.set_gas(json.initial_gas);
-            pvms.set_registers(&registers);
-            pvms.set_next_program_counter(json.initial_pc);
-            // TODO [ToDr] setup memory?
-            pvms.set_program(&json.program, api::ProgramContainer::Generic)?;
-
-            let status = pvms.run()?;
-            let regs = pvms.registers();
-            let gas = pvms.gas();
-            let pc = pvms.program_counter();
-
-            assert_eq!(
-                format!("{status}"),
-                json.expected_status,
-                "Mismatching status"
-            );
-            assert_eq!(gas, json.expected_gas, "Mismatching gas");
-            assert_eq!(pc, Some(json.expected_pc), "Mismatching pc");
-            assert_eq!(&regs, &*json.expected_regs, "Mismatching regs");
-            // TODO [ToDr] Compare memory
-
-            println!("{} executed", json.name);
             Ok(())
         }
-        Args::Fuzz { .. } => {
+        Command::Fuzz { .. } => {
             todo!();
         }
     }
@@ -61,13 +70,14 @@ fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
         .map(|pvm| {
             match pvm {
                 Pvm::PolkaVM => Ok(Box::new(api::polkavm::PolkaVm::default()) as Box<dyn PvmApi>),
-                Pvm::Stdin { binary } => {
+                Pvm::Stdin { name, binary } => {
                     // spawn process
                     let process = std::process::Command::new(binary)
                         .stdin(Stdio::piped())
                         .stdout(Stdio::piped())
                         .stderr(Stdio::inherit())
-                        .spawn()?;
+                        .spawn()
+                        .with_context(|| format!("Unable to start stdin pvm: {name:?}"))?;
                     let stdin = process.stdin.unwrap();
                     let stdout = process.stdout.unwrap();
                     Ok(Box::new(api::stdin::JsonStdin::new(stdout, stdin)) as _)
@@ -80,53 +90,43 @@ fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
         .collect()
 }
 
-#[derive(Parser, Debug)]
-#[clap(version)]
+fn with_config(config: Option<PathBuf>, mut pvms: Vec<Pvm>) -> anyhow::Result<Vec<Pvm>> {
+    match config {
+        Some(path) => {
+            let mut config = read_config_file(&path)
+                .with_context(|| format!("Failed to read the config file."))?;
+            pvms.append(&mut config.pvm);
+            Ok(pvms)
+        },
+        None => Ok(pvms),
+    }
+}
+
 /// Run test harness for PVMs.
-enum Args {
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Args {
+    /// toml config file.
+    #[arg(short, long)]
+    config: Option<PathBuf>,
+    #[clap(help=PVM_HELP)]
+    pvm: Vec<Pvm>,
+    /// command to execute
+    #[command(subcommand)]
+    sub: Command,
+}
+
+/// Run test harness for PVMs.
+#[derive(Subcommand, Debug, Clone)]
+enum Command {
     /// Execute a JSON test case.
     Json {
-        file: PathBuf,
-        #[clap(help=PVM_HELP)]
-        pvm: Vec<Pvm>,
+        /// JSON file to load
+        files: Vec<PathBuf>,
     },
     /// Run fuzz testing.
-    Fuzz {
-        #[clap(help=PVM_HELP)]
-        pvm: Vec<Pvm>,
-    },
+    Fuzz {},
 }
 
 const PVM_HELP: &str =
     "PVMs to run. Can be either 'polkavm', 'stdin=<path>' or jsonrpc=<endpoint>.";
-#[derive(Debug, Clone)]
-enum Pvm {
-    /// Built-in polkavm native interface.
-    PolkaVM,
-
-    /// stdin-based interface
-    Stdin { binary: PathBuf },
-
-    #[allow(dead_code)]
-    /// jsonrpc-based interface
-    JsonRpc { endpoint: String },
-}
-
-impl std::str::FromStr for Pvm {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "polkavm" {
-            Ok(Pvm::PolkaVM)
-        } else if s.starts_with("stdin=") {
-            let path = std::path::PathBuf::from_str(s.trim_start_matches("stdin="))?;
-            Ok(Pvm::Stdin { binary: path })
-        } else if s.starts_with("jsonrpc=") {
-            Ok(Pvm::JsonRpc {
-                endpoint: s.trim_start_matches("rpc=").to_string(),
-            })
-        } else {
-            anyhow::bail!("Invalid PVM argument: {}", s)
-        }
-    }
-}

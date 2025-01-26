@@ -1,3 +1,6 @@
 [submodule "polkavm"]
 	path = polkavm
 	url = git@github.com:paritytech/polkavm.git
+[submodule "ananas"]
+	path = ananas
+	url = https://github.com/tomusdrw/anan-as.git
