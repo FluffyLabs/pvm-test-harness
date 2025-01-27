@@ -96,11 +96,7 @@ impl<Read: std::io::Read, Write: std::io::Write> PvmApi for JsonStdin<Read, Writ
         self.json.initial_pc = pc;
     }
 
-    fn set_program(
-        &mut self,
-        code: &[u8],
-        container: super::ProgramContainer,
-    ) -> super::Result<()> {
+    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
         if let ProgramContainer::Generic = container {
             self.json.program = code.to_vec();
             Ok(())
