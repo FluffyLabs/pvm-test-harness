@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - name: Check
       run: cargo check
     - name: Build
@@ -24,6 +26,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - name: Install clippy (base toolchain)
       run: rustup component add clippy
     - name: Run clippy
@@ -35,4 +39,4 @@ jobs:
     - name: Install rustfmt (base toolchain)
       run: rustup component add rustfmt
     - name: Run rustfmt
-      run: cargo fmt --all
+      run: cargo fmt --check
