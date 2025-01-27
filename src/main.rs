@@ -20,9 +20,9 @@ fn main() -> anyhow::Result<()> {
             let mut pvms = api::collection::PvmApiCollection::new(init_pvms(&pvm)?);
 
             for file in files {
-                let json = std::fs::read(&file).with_context(|| format!("Failed to read JSON file."))?;
+                let json = std::fs::read(&file).with_context(|| "Failed to read JSON file.".to_string())?;
                 let json: TestcaseJson =
-                    serde_json::from_slice(&json).with_context(|| format!("Failed to parse JSON file."))?;
+                    serde_json::from_slice(&json).with_context(|| "Failed to parse JSON file.".to_string())?;
 
                 println!("{} running on {} pvms...", json.name, pvm.len());
                 let mut registers = [0u64; api::NUMBER_OF_REGISTERS];
@@ -88,7 +88,7 @@ fn init_pvms(pvm: &[Pvm]) -> anyhow::Result<Vec<Box<dyn PvmApi>>> {
 fn with_config(config: Option<PathBuf>, mut pvms: Vec<Pvm>) -> anyhow::Result<Vec<Pvm>> {
     match config {
         Some(path) => {
-            let mut config = read_config_file(&path).with_context(|| format!("Failed to read the config file."))?;
+            let mut config = read_config_file(&path).with_context(|| "Failed to read the config file.".to_string())?;
             pvms.append(&mut config.pvm);
             Ok(pvms)
         }
