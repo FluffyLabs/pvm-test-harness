@@ -42,11 +42,7 @@ fn propagate<R: core::fmt::Debug + Eq>(a: R, b: R, ctx: &str) -> R {
     }
     a
 }
-fn propagate_res<R: core::fmt::Debug + Eq>(
-    a: super::Result<R>,
-    b: super::Result<R>,
-    ctx: &str,
-) -> super::Result<R> {
+fn propagate_res<R: core::fmt::Debug + Eq>(a: super::Result<R>, b: super::Result<R>, ctx: &str) -> super::Result<R> {
     match (a, b) {
         (Err(e), o) | (o, Err(e)) => {
             log::error!("[{ctx}] Ignoring result due to error in one of the PVMs: {o:?}");
@@ -74,10 +70,7 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn set_registers(&mut self, registers: &[u64; super::NUMBER_OF_REGISTERS]) {
-        self.for_all_mut(
-            |p| p.set_registers(registers),
-            |a, b| propagate(a, b, "set_registers"),
-        )
+        self.for_all_mut(|p| p.set_registers(registers), |a, b| propagate(a, b, "set_registers"))
     }
 
     fn program_counter(&self) -> Option<u32> {
@@ -85,17 +78,10 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn set_next_program_counter(&mut self, pc: u32) {
-        self.for_all_mut(
-            |p| p.set_next_program_counter(pc),
-            |a, b| propagate(a, b, "set_PC"),
-        )
+        self.for_all_mut(|p| p.set_next_program_counter(pc), |a, b| propagate(a, b, "set_PC"))
     }
 
-    fn set_program(
-        &mut self,
-        code: &[u8],
-        container: super::ProgramContainer,
-    ) -> super::Result<()> {
+    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
         self.for_all_mut(
             |p| p.set_program(code, container),
             |a, b| propagate_res(a, b, "set_program"),
@@ -103,10 +89,7 @@ impl PvmApi for PvmApiCollection {
     }
 
     fn set_page(&mut self, page: u32, access: super::MemoryAccess) {
-        self.for_all_mut(
-            |p| p.set_page(page, access),
-            |a, b| propagate(a, b, "set_page"),
-        )
+        self.for_all_mut(|p| p.set_page(page, access), |a, b| propagate(a, b, "set_page"))
     }
 
     fn read_memory(&self, _address: u32, _out: &mut [u8]) -> super::Result<()> {

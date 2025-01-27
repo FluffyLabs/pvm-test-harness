@@ -19,13 +19,11 @@ impl PolkaVm {
                 // TODO [ToDr] setup memory
                 Ok(parts)
             }
-            Some(ProgramContainer::PolkaVM) => polkavm::ProgramParts::from_bytes(
-                self.initial.program.clone().into(),
-            )
-            .map_err(|e| {
-                log::error!("{:?}", e);
-                Error::InvalidProgram
-            }),
+            Some(ProgramContainer::PolkaVM) => polkavm::ProgramParts::from_bytes(self.initial.program.clone().into())
+                .map_err(|e| {
+                    log::error!("{:?}", e);
+                    Error::InvalidProgram
+                }),
             _ => Err(Error::UnsupportedContainer),
         }?;
 
@@ -111,11 +109,7 @@ impl PvmApi for PolkaVm {
         self.initial.pc = pc;
     }
 
-    fn set_program(
-        &mut self,
-        code: &[u8],
-        container: super::ProgramContainer,
-    ) -> super::Result<()> {
+    fn set_program(&mut self, code: &[u8], container: super::ProgramContainer) -> super::Result<()> {
         if let ProgramContainer::Spi = container {
             return Err(Error::UnsupportedContainer);
         }

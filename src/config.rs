@@ -23,17 +23,11 @@ pub enum Pvm {
     PolkaVM,
 
     /// stdin-based interface
-    Stdin {
-        name: Option<String>,
-        binary: PathBuf,
-    },
+    Stdin { name: Option<String>, binary: PathBuf },
 
     #[allow(dead_code)]
     /// jsonrpc-based interface
-    JsonRpc {
-        name: Option<String>,
-        endpoint: String,
-    },
+    JsonRpc { name: Option<String>, endpoint: String },
 }
 
 impl std::str::FromStr for Pvm {
